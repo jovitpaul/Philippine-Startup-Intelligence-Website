@@ -2,9 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import ArticleCard from '../components/ArticleCard';
 
-// ==========================================
-// FIX: STRICT CACHE BUSTING FOR NEXT.JS 15
-// ==========================================
+// STRICT CACHE BUSTING FOR NEXT.JS 15
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -30,7 +28,9 @@ export default async function Home({ searchParams }) {
 
     rawNews = data.map(item => ({
       title: item.title, link: item.link, displayDate: item.display_date,
-      sector: item.sector, isFunding: item.is_funding, color: item.color
+      sector: item.sector, isFunding: item.is_funding, color: item.color,
+      aiSummary: item.ai_summary,        // <-- NEW: Pulling AI Summary
+      fundingAmount: item.funding_amount // <-- NEW: Pulling Funding Amount
     }));
   } catch (error) {
     errorMsg = "⚠️ Radar offline. Could not connect to database.";
@@ -54,27 +54,23 @@ export default async function Home({ searchParams }) {
 
   const dominancePercentage = totalSignals > 0 ? Math.round((highestCount / totalSignals) * 100) : 0;
   
-  // --- NEW: DYNAMIC TRENDING KEYWORDS ALGORITHM ---
+  // DYNAMIC TRENDING KEYWORDS ALGORITHM
   const stopWords = ['and','the','to','a','of','for','in','philippines','startup','tech','on','with','is','at','from','by','ph','startups','business','new','how','its','will'];
   const wordCounts = {};
   
   rawNews.forEach(article => {
-    // Clean punctuation and split into words
     const words = article.title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
     words.forEach(w => {
-      // Only count meaningful words longer than 3 letters
       if (w.length > 3 && !stopWords.includes(w)) {
         wordCounts[w] = (wordCounts[w] || 0) + 1;
       }
     });
   });
 
-  // Sort and grab the top 5 trending keywords
   const trendingKeywords = Object.entries(wordCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(entry => entry[0]);
-  // ------------------------------------------------
 
   let dynamicInsight = "";
   if (searchQuery && totalSignals > 0) {
@@ -113,7 +109,6 @@ export default async function Home({ searchParams }) {
           </p>
         </div>
 
-        {/* Search Bar Area */}
         <div className="mb-12">
           <form method="GET" action="/" className="flex flex-col sm:flex-row gap-3 bg-white/50 backdrop-blur-xl p-2 rounded-2xl border border-white shadow-lg shadow-slate-200/50">
             <input 
@@ -134,7 +129,6 @@ export default async function Home({ searchParams }) {
             )}
           </form>
 
-          {/* NEW: Trending Keywords Pills */}
           {!searchQuery && trendingKeywords.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mt-4 ml-2">
               <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mr-1">🔥 Trending:</span>
